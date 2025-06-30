@@ -789,41 +789,47 @@
 
                 /* ======= STEP 2: ลองแปลงเป็น object (ถ้าอยากใช้ต่อ) ======= */
                 let data;
-                 try {
+                try {
     data = JSON.parse(raw);
-    alert(JSON.stringify(data, null, 2)); // เพื่อ debug ดู JSON
 
-    document.getElementById("titleNameTh").textContent = data.th_Prefix;
-    document.getElementById("firstNameTh").textContent = data.th_Firstname;
-    document.getElementById("lastNameTh").textContent = data.th_Lastname;
+    // Debug ดู JSON
+    console.log("DATA:", data);
 
-    document.getElementById("titleNameEn").textContent = data.en_Prefix;
-    document.getElementById("firstNameEn").textContent = data.en_Firstname;
-    document.getElementById("lastNameEn").textContent = data.en_Lastname;
+    // แมปค่าจาก JSON ไปยัง HTML ID
+    document.getElementById("titleNameTh").textContent = data.titleNameTh || "";
+    document.getElementById("firstNameTh").textContent = data.firstNameTh || "";
+    document.getElementById("lastNameTh").textContent = data.lastNameTh || "";
 
-    document.getElementById("citizenNo").textContent = data.citizenid;
-    document.getElementById("birthDate").textContent = data.birthday;
-    document.getElementById("issuePlace").textContent = data.issuer;
-    document.getElementById("issueDate").textContent = data.issue;
+    document.getElementById("titleNameEn").textContent = data.titleNameEn || "";
+    document.getElementById("firstNameEn").textContent = data.firstNameEn || "";
+    document.getElementById("lastNameEn").textContent = data.lastNameEn || "";
 
-    // document.getElementById("expiryDate").textContent = data.expire;
+    document.getElementById("citizenNo").textContent = data.citizenNo || "";
+    document.getElementById("birthDate").textContent = data.birthDate || "";
+    document.getElementById("issuePlace").textContent = data.issuePlace || "";
+    document.getElementById("issueDate").textContent = data.issueDate || "";
+    document.getElementById("expiryDate").textContent = data.expiryDate || "";
 
-    document.getElementById("me2").textContent = data.laserId;
-    document.getElementById("numberCard").textContent = data.bp1No;
-    document.getElementById("numberOut").textContent = data.issureCode;
-    document.getElementById("idCard").textContent = data.chipId;
-    document.getElementById("numberPic").textContent = data.picNo;
-    document.getElementById("cardType").textContent = data.cardType;
-    document.getElementById("addressLong").textContent = data.address;
- if (data.hasOwnProperty('photo')) {
-        //                 let pic = 'data:image/jpeg;base64,' + data.photo;;
-        //                 document.getElementById('profile').src = pic;
+    document.getElementById("me2").textContent = data.laser_id || "";
+    document.getElementById("numberCard").textContent = data.bp1No || "";
+    document.getElementById("numberOut").textContent = data.issueNo || "";
+    document.getElementById("idCard").textContent = data.chipID || "";
+    document.getElementById("numberPic").textContent = data.picNo || "";
+    document.getElementById("cardType").textContent = data.cardType || "";
 
-        //             }
- }
+    // รวม address
+    document.getElementById("addressLong").textContent =
+        `${data.homeNo || ''} ${data.soi || ''} ${data.road || ''} ${data.trok || ''} ${data.titleTumbol || ''} ${data.tumbol || ''} ${data.titleAmphur || ''} ${data.amphur || ''} ${data.province || ''}`.replace(/\s+/g, ' ').trim();
+
+    // หากมีภาพ และมี <img id="cardPhoto"> อยู่
+    if (data.photo) {
+        const img = document.getElementById("cardPhoto");
+        if (img) img.src = "data:image/jpeg;base64," + data.photo;
+    }
+
 } catch (e) {
     console.error("ไม่ใช่ JSON สมบูรณ์:", e);
-    return;
+    alert("เกิดข้อผิดพลาดในการอ่านข้อมูลบัตร");
 }
 
                 console.log("OBJ:", data); // ใช้งาน object ต่อได้เลย
