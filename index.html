@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- <link href="../common/style/wacom.css" rel="stylesheet" type="text/css"> -->
+    <!-- <link href="../sigCaptDialog/style/sigCaptDialog.css" rel="stylesheet" type="text/css"> -->
+    <!-- <script src="simple.js" type="module"></script> -->
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/selectize/dist/css/selectize.default.min.css">
+    <title>WebSocket Clienฟt</title>
+    <style>
+        .ake {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        
+        .info {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+        }
+        
+        .info span {
+            font-weight: bold;
+        }
+        
+        .info div {
+            text-align: right;
+        }
+        
+        .section {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+        }
+        
+        table,
+        tr {
+            max-width: 100%;
+        }
+        
+        table,
+        th,
+        td {
+            border: 1px solid;
+            white-space: normal;
+        }
+        
+        td {
+            word-wrap: break-word;
+        }
+        
+        .commslog-data {
+            font-family: Consolas, Courier New, Courier, monospace;
+            word-break: break-all;
+            max-width: 70%;
+            vertical-align: top;
+        }
+        
+        .commslog-server {
+            background-color: red;
+            color: white
+        }
+        
+        .commslog-client {
+            background-color: green;
+            color: white
+        }
+        
+        img.passport_face_image {
+            transform: scale(0.25, 0.25);
+            display: block;
+        }
+        
+        #drop_zone {
+            border: 5px solid darkgreen;
+            display: inline-block;
+            height: 100px;
+        }
+        
+        #ocrLoader {
+            position: fixed;
+            inset: 0;
+            /* เต็มจอ */
+            background: rgba(0, 0, 0, .45);
+            /* ดำโปร่ง */
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            /* ให้อยู่บนสุด */
+        }
+        
+        .loader-spin {
+            width: 3rem;
+            height: 3rem;
+            border: .4rem solid #fff2;
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    <!-- <script type="module" crossorigin src="../assets/simple-D4PHjT1I.js"></script>
+  <link rel="stylesheet" crossorigin href="../assets/simple-DKEz1plW.css"> -->
+</head>
+
+<body>
+    <div id="ocrLoader">
+        <div class="loader-spin"></div>
+    </div>
+    <div hidden>
+        <div id="initializeBanground" class="active" style="width:100%;height:100%;position:fixed;background:#cccccccc;">
+            <div style="position:absolute;left:50%;top:50%;-webkit-transform:translate(-50%,-50%);transform:translate(-50%,-50%);">
+                <table>
+                    <tr>
+                        <td>
+                            <div class="loader"></div>
+                        </td>
+                        <td>Initializing, this could take a few seconds...</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <h1>Signature SDK <span id="version_txt"></span>- Simple demo</h1>
+        <p><input type="file" id="myfile" name="myfile" onchange="javascript:loadFromFile();" disabled="disabled"></p>
+        <p><button id="capture_stu_device" onClick="captureFromSTU()" disabled="disabled">Capture with STU device</button></p>
+
+        <p>Capture the signature using standard javascript events.</p>
+        <p>
+            <input type="checkbox" name="allow_mouse_check" id="allow_mouse_check" checked="checked">
+            <label for="allow_mouse_check">Allow mouse input</label> &nbsp;&nbsp;
+            <input type="checkbox" name="allow_touch_check" id="allow_touch_check" checked="checked">
+            <label for="allow_touch_check">Allow touch</label> &nbsp;&nbsp;
+            <input type="checkbox" name="allow_pen_check" id="allow_pen_check" checked="checked">
+            <label for="allow_pen_check">Allow pen</label> &nbsp;&nbsp;
+        </p>
+
+
+
+
+    </div>
+    <div id="passbook" class="container my-4 p-5" style="background-color: #66FFFF;" hidden>
+        <!-- Header Section -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <img src="../ttb.jpg" alt=" Logo" class="img-fluid mt-3" width="275px" height="200px">
+            </div>
+            <div class="col-md-6 text-center mt-3">
+                <h1>ธนาคารทหารไทยธนชาต จำกัด (มหาชน)</h1>
+                <!-- <p>TMBThanachart Bank Public Company Limited</p> -->
+            </div>
+            <div class="col-md-2 text-end">
+                <select class="form-select" aria-label="Default select example" onchange="handleSelectChange(this)">
+                    <option selected disabled>เลือกการทำรายการ</option>
+                    <option value="ReadThaiId">อ่านบัตรประชาชน</option>
+                    <option value="ReadPassbook">อ่านหนังสือเดินทาง</option>
+                  </select>
+
+            </div>
+        </div>
+        <div class="ake">
+            <h1>ข้อมูล Passportฟหกฟก</h1>
+            <div class="info">
+                <span>กรอกข้อมูล</span>
+                <div id="passport_ocr_params">-</div>
+            </div>
+            <div class="info d-flex justify-content-center">
+                <img id="FaceImage1" style="width: 150px; height: 170px;" />
+            </div>
+            <div class="info">
+                <span>ชื่อ นามสกุล (อังกฤษ):</span>
+                <div id="name2">-</div>
+            </div>
+            <div class="info">
+                <span>เพศ</span>
+                <div id="genderr">-</div>
+            </div>
+            <div class="info">
+                <span>สัญชาติ</span>
+                <div id="nationn">-</div>
+            </div>
+            <div class="info">
+                <span>หนังสือเดินทางเลขที่:</span>
+                <div id="SerialNumber">-</div>
+            </div>
+            <div class="info">
+                <span>เลขประจำตัวประชาชน:</span>
+                <div id="PersonalNumber">-</div>
+            </div>
+            <div class="info">
+                <span>วันเกิด:</span>
+                <div id="BirthDate4">-</div>
+            </div>
+            <div class="info">
+                <span>Country Code:</span>
+                <div id="Nationality">-</div>
+            </div>
+            <div class="info">
+                <span>ประเทศที่ออกเอกสาร</span>
+                <div id="IssuerAuthority">-</div>
+            </div>
+            <div class="info">
+                <span>วันหมดอายุ</span>
+                <div id="ExpiryDate4">-</div>
+            </div>
+            <div class="info">
+                <span>Auth :: DocumentNo</span>
+                <div><input type="text" id="docNo3" required="required" placeholder="Document No(XXY1234)"></div>
+            </div>
+            <div class="info">
+                <span>Auth :: ExpiryDate</span>
+                <div><input type="text" id="ExpiryDate3" required="required" placeholder="ExpiryDate (YYMMDD)" pattern="[0-9]{6}"></div>
+            </div>
+            <div class="info">
+                <span>Auth :: Birthdate</span>
+                <div><input type="text" id="BirthDate3" required="required" placeholder="BirthDate (YYMMDD)" pattern="[0-9]{6}"></div>
+            </div>
+
+
+            <!-- <div class="info">
+                <span>ข้อมูล MRZ</span>
+                <div id="mrz">-</div>
+            </div> -->
+            <!-- <div class="section">
+                <h2>ที่อยู่</h2>
+                <div class="info">
+                    <span>บ้านเลขที่:</span>
+                <div id="homeNo">-</div>
+            </div>
+            <div class="info">
+                <span>ซอย:</span>
+                <div id="soi">-</div>
+            </div>
+            <div class="info">
+                <span>แขวง:</span>
+                <div id="tumbol">-</div>
+            </div>
+            <div class="info">
+                <span>เขต:</span>
+                <div id="amphur">-</div>
+            </div>
+            <div class="info">
+                <span>จังหวัด:</span>
+                <div id="province">-</div>
+            </div>
+        </div> -->
+            <div class="col-md-12 d-flex align-items-end">
+                <input id="connectionUrl2" value="" hidden/>
+                <button id="connectButton2" class="btn btn-success w-100" type="submit">Connect</button>
+                <!-- <div>
+                    <label for="connectionUrl">WebSocket Server URL:</label>
+                    <input id="connectionUrl" />
+                    <button id="connectButton" type="submit">Connect</button>
+                </div> -->
+                <video id="video" width="550" height="480" hidden autoplay muted playsinline></video>
+
+                <canvas id="canvas" width="550" height="480" hidden></canvas>
+
+
+            </div>
+            <div class="col-md-12 d-flex align-items-end">
+                <button class="btn btn-success w-100" id="capture" hidden> ถ่ายรูป</button>
+                <button class="btn btn-danger w-100" id="stop" hidden> ปิดกล้อง</button>
+
+            </div>
+
+            <div class="col-md-12 d-flex align-items-end">
+                <input type="file" id="imageInput" accept="image/*" capture="environment">
+
+                <button class="btn btn-primary w-100" id="read_mrz_btn" hidden>อ่านหนังสือเดินทาง (OCR)</button>
+                <button id="read_passport_btn" class="btn btn-success w-100" type="button" onclick="onReadPassportOnly()">Read Passport NFC</button>
+                <button class="btn btn-success w-100" type="button" onclick="uploadImage();">Read Passport OCR</button>
+                <button class="btn btn-danger w-100" type="button" onclick="OpenCam()">Open Camera</button>
+
+            </div>
+        </div>
+
+
+
+
+
+
+
+
+
+
+    </div>
+    <div id="thaiIDReal" class="container my-4 p-5" style="background-color: #66FFFF;">
+        <!-- Header Section -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <img src="../ttb.jpg" alt=" Logo" class="img-fluid mt-3" width="275px" height="200px">
+            </div>
+            <div class="col-md-6 text-center mt-3">
+                <h1>ธนาคารทหารไทยธนชาต จำกัด (มหาชน)</h1>
+                <!-- <p>TMBThanachart Bank Public Company Limited</p> -->
+            </div>
+            <div class="col-md-2 text-end">
+                <select class="form-select" aria-label="Default select example" onchange="handleSelectChange(this)">
+                    <option selected disabled>เลือกการทำรายการ</option>
+                    <option value="ReadThaiId">อ่านบัตรประชาชน</option>
+                    <option value="ReadPassbook">อ่านหนังสือเดินทาง</option>
+                  </select>
+
+            </div>
+        </div>
+        <div class="ake">
+            <h1>ข้อมูลบัตรประชาชน</h1>
+            <div class="info d-flex justify-content-center">
+                <img id="profile" />
+            </div>
+            <div class="info">
+                <span>คำนำหน้าชื่อ (ไทย):</span>
+                <div id="titleNameTh">-</div>
+            </div>
+            <div class="info">
+                <span>ชื่อ (ไทย):</span>
+                <div id="firstNameTh">-</div>
+            </div>
+            <div class="info">
+                <span>นามสกุล (ไทย):</span>
+                <div id="lastNameTh">-</div>
+            </div>
+            <div class="info">
+                <span>คำนำหน้าชื่อ (อังกฤษ):</span>
+                <div id="titleNameEn">-</div>
+            </div>
+            <div class="info">
+                <span>ชื่อ (อังกฤษ):</span>
+                <div id="firstNameEn">-</div>
+            </div>
+            <div class="info">
+                <span>นามสกุล (อังกฤษ):</span>
+                <div id="lastNameEn">-</div>
+            </div>
+            <div class="info">
+                <span>เลขประจำตัวประชาชน:</span>
+                <div id="citizenNo">-</div>
+            </div>
+            <div class="info">
+                <span>วันเกิด:</span>
+                <div id="birthDate">-</div>
+            </div>
+            <div class="info">
+                <span>สถานที่ออกบัตร:</span>
+                <div id="issuePlace">-</div>
+            </div>
+            <!-- <div class="info">
+                <span>เลขที่บัตร:</span>
+                <div id="issueNo">-</div>
+            </div>
+            <div class="info">
+                <span>เลขหลังบัตร:</span>
+                <div id="laser_id">-</div>
+            </div> -->
+            <div class="info">
+                <span>วันที่ออกบัตร:</span>
+                <div id="issueDate">-</div>
+            </div>
+            <div class="info">
+                <span>เลขหลังบัตร:</span>
+                <div id="me2">-</div>
+            </div>
+            <div class="info">
+                <span>หมายเลขบัตร/คำร้อง:</span>
+                <div id="numberCard">-</div>
+            </div>
+            <div class="info">
+                <span>รหัสผู้ออกบัตร:</span>
+                <div id="numberOut">-</div>
+            </div>
+            <div class="info">
+                <span>รหัสประจำบัตร:</span>
+                <div id="idCard">-</div>
+            </div>
+            <div class="info">
+                <span>เลขใต้รูป:</span>
+                <div id="numberPic">-</div>
+            </div>
+            <div class="info">
+                <span>ประเภทบัตร:</span>
+                <div id="cardType">-</div>
+            </div>
+            <!-- <div class="info">
+                <span>หมายเลขชิป:</span>
+                <div id="cardChipNo">-</div>
+            </div>
+            <div class="info">
+                <span>Bp1:</span>
+                <div id="bp1">-</div>
+            </div> -->
+            <div class="section">
+                <h2>ที่อยู่</h2>
+                <div class="info">
+                    <span>ที่อยู่ตามบัตรประชาชน:</span>
+                    <div id="addressLong">-</div>
+                </div>
+                <!-- <div class="info">
+                    <span>ซอย:</span>
+                    <div id="soi">-</div>
+                </div>
+                <div class="info">
+                    <span>แขวง:</span>
+                    <div id="tumbol">-</div>
+                </div>
+                <div class="info">
+                    <span>เขต:</span>
+                    <div id="amphur">-</div>
+                </div>
+                <div class="info">
+                    <span>หมู่:
+                        
+                    </span>
+                    <div id="moo">-</div>
+                </div>
+                <div class="info">
+                    <span>จังหวัด:</span>
+                    <div id="province">-</div>
+                </div> -->
+            </div>
+            <div class="col-md-12 d-flex align-items-end">
+                <input id="connectionUrl" value="" hidden/>
+                <!-- <button id="connectButton" class="btn btn-success w-100" type="submit">Connect</button> -->
+                <!-- <div>
+                    <label for="connectionUrl">WebSocket Server URL:</label>
+                    <input id="connectionUrl" />
+                    <button id="connectButton" type="submit">Connect</button>
+                </div> -->
+                <button class="btn btn-primary w-100" onclick="ReadThaiIDApi()">อ่านบัตร</button>
+                <!-- <textarea name="" id="test"></textarea> -->
+            </div>
+        </div>
+        <!-- Account Information -->
+
+    </div>
+    </div>
+
+    <div hidden>
+        <div>
+            <p id="stateLabel">Ready to connect...</p>
+            <div>
+            </div>
+            <p></p>
+            <div>
+                <button id="read_citizencard_btn" type="submit" disabled>Read CitizenCard</button>
+                <button id="read_emvcard_btn" type="submit" disabled>Read Track1 and 2</button>
+                <button id="read_mrz_btn" type="submit" disabled>Take Picture and OCR</button>
+                <button id="" type="submit" disabled>Read Passport Only (No OCR)</button>
+                <button id="" type="submit" disabled>Read Passport NFC</button>
+
+            </div>
+
+            <div id="passport_ocr_params">
+            </div>
+            <input type="file" id="img_upload" accept="image/png, image/jpeg" style="display:none" />
+            <div id="drop_zone" ondrop="dropHandler(event);" onclick="uploadFile()">
+                <p>
+                    Drop passport first page Picture for OCR here.<br/>
+                    <b>Or Click to select file.</b>
+                </p>
+            </div>
+            <div>
+                <label for="sendMessage">Message to send:</label>
+                <input id="sendMessage" disabled />
+                <button id="sendButton" type="submit" disabled>Send</button>
+                <button id="closeButton" disabled>Close Socket</button>
+            </div>
+
+            <h2>Communication Log</h2>
+            <div>
+                <button id="clear_log_btn" onclick="clearLog()">Clear Log</button>
+                <table style="table-layout: fixed" id="tableLog">
+                    <thead>
+                        <tr>
+                            <td style="width: 100px">From</td>
+                            <td style="width: 100px">To</td>
+                            <td>Data</td>
+                            <td>Picture</td>
+                        </tr>
+                    </thead>
+                    <tbody id="commsLog">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.14.0-beta2/js/bootstrap-select.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/selectize/dist/js/standalone/selectize.min.js"></script>
+
+    <script>
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("canvas");
+        const captureBtn = document.getElementById("capture");
+        const stopBtn = document.getElementById("stop");
+        const context = canvas.getContext("2d");
+
+        let stream;
+
+        async function OpenCam() {
+            try {
+                // ขอใช้กล้อง “ด้านหลัง” ถ้ามี  (iOS/Android)
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: {
+                            ideal: "environment"
+                        }
+                    },
+                    audio: false
+                });
+
+                video.srcObject = stream;
+                await video.play(); // iOS ต้องสั่ง play() หลังเซ็ต srcObject
+
+                // โชว์วิดีโอ + ปุ่มต่าง ๆ ในหน้า
+                video.hidden = false;
+                captureBtn.hidden = false;
+                stopBtn.hidden = false;
+                canvas.hidden = true; // ซ่อนแคนวาสไว้ก่อน
+            } catch (err) {
+                console.error("ไม่สามารถเปิดกล้องได้:", err);
+                alert("ไม่สามารถเข้าถึงกล้องได้!");
+            }
+        }
+
+        stopBtn.addEventListener("click", () => {
+            if (stream) {
+                let tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                video.srcObject = null;
+            }
+        });
+
+        captureBtn.addEventListener("click", () => {
+            // ปรับขนาด Canvas ให้เท่ากับ Video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // วาดภาพจากวิดีโอลงใน Canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // ซ่อน <video> และแสดง <canvas> แทน
+            video.style.display = "none";
+            canvas.style.display = "block";
+
+            // แปลงภาพจาก Canvas เป็นไฟล์รูปภาพ
+            canvas.toBlob((blob) => {
+                let file = new File([blob], "captured_image.jpg", {
+                    type: "image/jpeg"
+                });
+
+                let dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                document.getElementById("imageInput").files = dataTransfer.files;
+            }, "image/jpeg");
+        });
+    </script>
+
+    <script>
+        captureBtn.addEventListener("click", () => {
+            // วาดภาพจากวิดีโอลงใน Canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // ซ่อนวิดีโอ และแสดง Canvas แทน
+            video.style.display = "none";
+            canvas.style.display = "block";
+
+            // แปลงภาพจาก Canvas เป็นไฟล์รูปภาพ
+            canvas.toBlob((blob) => {
+                let file = new File([blob], "captured_image.jpg", {
+                    type: "image/jpeg"
+                });
+
+                // จำลองการเลือกไฟล์เพื่อนำไปใช้งานใน uploadImage()
+                let dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                document.getElementById("imageInput").files = dataTransfer.files;
+
+                // เรียกใช้ฟังก์ชัน uploadImage() เพื่ออัปโหลดภาพที่ถ่าย
+            }, "image/jpeg");
+        });
+        async function uploadImage() {
+            const fileInput = document.getElementById('imageInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('กรุณาเลือกไฟล์ก่อน!');
+                throw new Error("No file selected");
+            }
+            const overlay = document.getElementById('ocrLoader');
+            overlay.style.display = 'flex';
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Upload failed with status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const passportInfo = data.data.data; // ✅ ตรงกับ JSON structure จริง
+                    const roiInfo = data.data.roi; // (ถ้าใช้)
+
+                    document.getElementById('ExpiryDate3').value = passportInfo.expire_date;
+                    document.getElementById('BirthDate3').value = passportInfo.birth_date;
+                    document.getElementById('docNo3').value = passportInfo.doc_number || 'N/A';
+
+                    alert(JSON.stringify(passportInfo, null, 2)); // แสดงเฉพาะ OCR info
+
+                    // ✅ ปรับให้ตรง key
+                    document.getElementById('name2').textContent =
+                        passportInfo.full_name || (passportInfo.doc_type + " " + passportInfo.doc_number);
+                    document.getElementById('PersonalNumber').textContent = passportInfo.personal_number || "-";
+                    document.getElementById('ExpiryDate4').textContent = passportInfo.expire_date || "-";
+                    document.getElementById('genderr').textContent = passportInfo.sex || "-";
+                    document.getElementById('nationn').textContent = passportInfo.nacionality || "-";
+                    document.getElementById('SerialNumber').textContent = passportInfo.doc_number || "-";
+                    document.getElementById('IssuerAuthority').textContent = passportInfo.country || "-";
+                    document.getElementById('Nationality').textContent = passportInfo.nacionality || "-";
+                    document.getElementById('BirthDate4').textContent = passportInfo.birth_date || "-";
+                    overlay.style.display = 'none';
+                    console.log("OCR Result:", passportInfo);
+
+                } else {
+                    overlay.style.display = 'none';
+                    alert('OCR ไม่สำเร็จ: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                overlay.style.display = 'none';
+                console.error('เกิดข้อผิดพลาด:', error);
+                throw error; // ❌ ทำให้ฟังก์ชัน NfcPassport() รู้ว่ามีข้อผิดพลาด
+            }
+        }
+    </script>
+    <script>
+        async function NfcPassport() {
+            // 1) ดึงค่าจากฟอร์ม
+            const documentNo = document.getElementById('docNo3').value.trim();
+            const expiryDate = document.getElementById('ExpiryDate3').value.trim();
+            const birthDate = document.getElementById('BirthDate3').value.trim();
+
+            // 2) เช็กว่าเว้นว่างทุกช่องหรือไม่
+            if (!documentNo && !expiryDate && !birthDate) {
+                alert('Please input data');
+                return;
+            }
+
+            // 3) สร้าง payload
+            const requestData = {
+                documentNo,
+                expiryDate,
+                birthDate
+            };
+
+            // 4) เรียก API
+            try {
+                const response = await fetch('http://127.0.0.1:8886/api/readpassport', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const data = await response.json();
+                console.log('Response from API:', data);
+                alert(data);
+                // // 5) อัปเดต UI
+                // document.getElementById('name2').textContent = `${data.Name} ${data.Surname}`;
+                // document.getElementById('PersonalNumber').textContent = data.PersonalNumber;
+                // document.getElementById('ExpiryDate4').textContent = data.ExpiryDate;
+                // document.getElementById('genderr').textContent = data.Gender;
+                // document.getElementById('nationn').textContent = data.Nationality;
+                // document.getElementById('SerialNumber').textContent = data.SerialNumber;
+                // document.getElementById('IssuerAuthority').textContent = data.IssuerAuthority;
+                // document.getElementById('Nationality').textContent = data.Nationality;
+                // document.getElementById('BirthDate4').textContent = data.BirthDate;
+
+                // if (data.FaceImage) {
+                //     document.getElementById('FaceImage1').src = `data:image/jpeg;base64,${data.FaceImage}`;
+                // }
+            } catch (err) {
+                console.error('Error occurred:', err);
+            }
+        }
+
+        // async function NfcPassport() {
+        //     // 1) รวบรวมค่า requestData
+        //     let requestData = {
+        //         documentNo: document.getElementById('docNo3').value, // passportNo
+        //         expiryDate: document.getElementById('ExpiryDate3').value,
+        //         birthDate: document.getElementById('BirthDate3').value
+        //     };
+
+        //     // 2) เช็คเงื่อนไข: ถ้า "ทุกฟิลด์ว่าง" ให้เรียก uploadImage() ก่อน
+        //     if (
+        //         requestData.documentNo === "" &&
+        //         requestData.expiryDate === "" &&
+        //         requestData.birthDate === ""
+        //     ) {
+
+        //         // เรียก uploadImage() ด้วย await เพื่อให้เสร็จก่อน
+        //         alert('Please Input Data')
+        //     }
+        //     requestData = {
+        //         documentNo: document.getElementById('docNo3').value, // passportNo
+        //         expiryDate: document.getElementById('ExpiryDate3').value,
+        //         birthDate: document.getElementById('BirthDate3').value
+        //     };
+        //     // 3) หลังจาก (อาจจะ) upload เสร็จแล้ว ทำ fetch ต่อ
+        //     try {
+        //         const response = await fetch('http://localhost:8080/readpassport', {
+        //             method: 'POST',
+        //             headers: {
+        //                 'Content-Type': 'application/json'
+        //             },
+        //             body: JSON.stringify(requestData)
+        //         });
+
+        //         if (!response.ok) {
+        //             throw new Error(`HTTP error! status: ${response.status}`);
+        //         }
+
+        //         const data = await response.json();
+        //         console.log("Response from API:", data);
+
+        //         // 4) อัปเดต UI ด้วยข้อมูลที่ได้
+        //         document.getElementById('name2').textContent = data.Name + " " + data.Surname;
+        //         document.getElementById('PersonalNumber').textContent = data.PersonalNumber;
+        //         document.getElementById('ExpiryDate4').textContent = data.ExpiryDate;
+        //         document.getElementById('genderr').textContent = data.Gender;
+        //         document.getElementById('nationn').textContent = data.Nationality;
+        //         document.getElementById('SerialNumber').textContent = data.SerialNumber;
+        //         document.getElementById('IssuerAuthority').textContent = data.IssuerAuthority;
+        //         document.getElementById('Nationality').textContent = data.Nationality;
+        //         document.getElementById('BirthDate4').textContent = data.BirthDate;
+
+        //         if (data.FaceImage) {
+        //             document.getElementById("FaceImage1").src = "data:image/jpeg;base64," + data.FaceImage;
+        //         }
+        //     } catch (error) {
+        //         console.error("Error occurred:", error);
+        //     }
+        // }
+
+        async function ReadThaiIDApi() {
+            const apiUrl = "https://203.151.70.158/api/thaicard";
+
+            try {
+                const res = await fetch(apiUrl, {
+                    method: "GET"
+                });
+                /* เช็กว่าสถานะ HTTP ปกติไหม — 2xx ทั้งหมดถือว่า ok */
+                if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+
+                /* ดึง **ทุกอย่าง** ออกมาเป็นข้อความก่อน */
+                const raw = await res.text();
+
+                /* ======= STEP 1: โชว์ดิบ ๆ ======= */
+                alert(raw); // ← คุณจะเห็น JSON ครบชุดในกล่อง alert
+
+                /* ======= STEP 2: ลองแปลงเป็น object (ถ้าอยากใช้ต่อ) ======= */
+                let data;
+                try {
+                    data = JSON.parse(raw);
+                } catch (e) {
+                    console.error("ไม่ใช่ JSON สมบูรณ์:", e);
+                    return; // ออกจากฟังก์ชันถ้าแปลงไม่ได้
+                }
+
+                console.log("OBJ:", data); // ใช้งาน object ต่อได้เลย
+                /* ตัวอย่างใช้บางฟิลด์ */
+                if (data.stateCode !== "002") {
+                    alert("อ่านบัตรไม่สำเร็จ (stateCode != 002)");
+                    return;
+                }
+                // …แมปลงหน้าจอต่อไป…
+            } catch (err) {
+                console.error("Fetch error:", err);
+                alert("เกิดข้อผิดพลาด: " + err.message);
+            }
+        }
+
+
+
+        // function ReadThaiIDApi() {
+        //     // URL ของ API
+        //     const apiUrl = "http://localhost:5001/api/Api2/ReadThaiID";
+
+
+        //     // ส่งคำขอ POST ด้วย fetch
+        //     fetch(apiUrl, {
+        //             method: "POST",
+        //             headers: {
+        //                 "Content-Type": "application/json", // ใช้ JSON เป็นค่าเริ่มต้น
+        //             },
+        //         })
+        //         .then((response) => {
+
+        //         })
+        //         .then((data) => {
+        //             console.log(data.success);
+        //             if (data.success === false) {
+        //                 alert(data.message);
+        //                 return;
+        //             }
+        //             document.getElementById("titleNameTh").textContent = data.th_Prefix;
+        //             document.getElementById("firstNameTh").textContent = data.th_Firstname;
+        //             document.getElementById("lastNameTh").textContent = data.th_Lastname;
+        //             document.getElementById("titleNameEn").textContent = data.en_Prefix;
+        //             document.getElementById("firstNameEn").textContent = data.en_Firstname
+        //             document.getElementById("lastNameEn").textContent = data.en_Lastname
+        //             document.getElementById("citizenNo").textContent = data.citizenid;
+        //             document.getElementById("birthDate").textContent = data.birthday;
+        //             document.getElementById("issuePlace").textContent = data.issuer;
+        //             document.getElementById("issueDate").textContent = data.issue;
+        //             // document.getElementById("expiryDate").textContent = data.expire;
+        //             document.getElementById("me2").textContent = data.laserId;
+        //             document.getElementById("numberCard").textContent = data.bp1No;
+        //             document.getElementById("numberOut").textContent = data.issureCode;
+        //             document.getElementById("idCard").textContent = data.chipId;
+        //             document.getElementById("numberPic").textContent = data.picNo;
+        //             document.getElementById("cardType").textContent = data.cardType;
+        //             document.getElementById("addressLong").textContent = data.address;
+
+
+
+        //             // document.getElementById("province").textContent = json['province'];
+        //             if (data.hasOwnProperty('photoBase64')) {
+        //                 let pic = 'data:image/jpeg;base64,' + data.photoBase64;;
+        //                 document.getElementById('profile').src = pic;
+
+        //             }
+        //             console.log("Response from API:", data); // ดูข้อมูลที่ได้จาก API
+        //         })
+        //         .catch((error) => {
+        //             console.error("Error occurred:", error); // แสดงข้อผิดพลาด (ถ้ามี)
+        //         });
+
+        // }
+    </script>
+    <script>
+        function handleSelectChange(selectElement) {
+            const selectedValue = selectElement.value;
+
+            if (selectedValue === "ReadThaiId") {
+                ReadThaiId();
+            } else if (selectedValue === "ReadPassbook") {
+                ReadPassbook();
+            }
+        }
+
+        function ReadThaiId() {
+            document.getElementById("passbook").hidden = true;
+            document.getElementById("thaiIDReal").hidden = false;
+        }
+
+        function ReadPassbook() {
+            document.getElementById("passbook").hidden = false;
+            document.getElementById("thaiIDReal").hidden = true;
+        }
+        //  $(document).ready(function() {
+        //     $('select').selectize({
+        //         // Options go here
+        //         create: true,
+        //         sortField: 'text'
+        //     });
+        // });
+
+        var connectionUrl = document.getElementById("connectionUrl");
+        var connectButton = document.getElementById("connectButton");
+        var connectionUrl2 = document.getElementById("connectionUrl2");
+        var connectButton2 = document.getElementById("connectButton2");
+        var stateLabel = document.getElementById("stateLabel");
+        var sendMessage = document.getElementById("sendMessage");
+        var sendButton = document.getElementById("sendButton");
+        var commsLog = document.getElementById("commsLog");
+        var closeButton = document.getElementById("closeButton");
+        var readCitizencardButton = document.getElementById("read_citizencard_btn");
+        var readPassportButton = document.getElementById("read_passport_btn");
+        var readMrzButton = document.getElementById("read_mrz_btn");
+        // var readPassportOnlyButton = document.getElementById("read_passport_only_btn");
+        var readEmvCardButton = document.getElementById("read_emvcard_btn");
+
+        var socket;
+
+        var longData;
+        var sendPictureBase64;
+        let pictures = [];
+        let pictures_need_scaled = [];
+        let rows;
+
+        var scheme = document.location.protocol === "https:" ? "ws" : "ws";
+        // var port = document.location.port ? (":" + document.location.port) : "8887";4
+        var port = document.location.port ? (":" + document.location.port) : "8887";
+
+
+        // connectionUrl.value = scheme + "://" + document.location.hostname + port + "/collectors" ;
+
+        // connectionUrl.value = "ws://MyWebSocketServer.local:8887";
+        connectionUrl.value = scheme + "://" + "192.168.1.148" + ":" + "8887";
+        connectionUrl2.value = scheme + "://" + "192.168.1.148" + ":" + "8887";
+        ////connecturlconnectionUrl.value = scheme + "://" + replaceme;
+
+        /* events fired on the drop targets */
+        document.addEventListener("dragover", function(event) {
+            // prevent default to allow drop
+            event.preventDefault();
+        });
+
+        document.addEventListener("drop", function(event) {
+            // prevent default action (open as link for some elements)
+            event.preventDefault();
+            console.log('dropped');
+        });
+
+        function updateState() {
+            function disable() {
+                sendMessage.disabled = true;
+                sendButton.disabled = true;
+                closeButton.disabled = true;
+                readPassportButton.disabled = true;
+                readCitizencardButton.disabled = true;
+                readMrzButton.disabled = true;
+                // readPassportOnlyButton.disabled = true;
+                readEmvCardButton.disabled = true;
+                document.getElementById('passport_ocr_params').innerHTML = "";
+            }
+
+            function enable() {
+                sendMessage.disabled = false;
+                sendButton.disabled = false;
+                closeButton.disabled = false;
+                readPassportButton.disabled = false;
+                readCitizencardButton.disabled = false;
+                readMrzButton.disabled = false;
+                // readPassportOnlyButton.disabled = false;
+                readEmvCardButton.disabled = false;
+            }
+
+            connectionUrl.disabled = true;
+            connectButton.disabled = true;
+            connectionUrl2.disabled = true;
+            connectButton2.disabled = true;
+            if (!socket) {
+                disable();
+            } else {
+                switch (socket.readyState) {
+                    case WebSocket.CLOSED:
+                        stateLabel.innerHTML = "Closed";
+                        disable();
+                        connectionUrl.disabled = false;
+                        connectButton.disabled = false;
+                        connectionUrl2.disabled = false;
+                        connectButton2.disabled = false;
+                        break;
+                    case WebSocket.CLOSING:
+                        stateLabel.innerHTML = "Closing...";
+                        disable();
+                        break;
+                    case WebSocket.CONNECTING:
+                        stateLabel.innerHTML = "Connecting...";
+                        disable();
+                        break;
+                    case WebSocket.OPEN:
+                        stateLabel.innerHTML = "Open";
+                        enable();
+                        break;
+                    default:
+                        stateLabel.innerHTML = "Unknown WebSocket State: " + htmlEscape(socket.readyState);
+                        disable();
+                        break;
+                }
+            }
+        }
+
+        closeButton.onclick = function() {
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                alert("socket not connected");
+            }
+            socket.close(1000, "Closing from client");
+        };
+
+        sendButton.onclick = function() {
+            alert('bbb');
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                alert("socket not connected");
+            }
+
+            let data = sendMessage.value;
+            if (longData != '') {
+                data = longData;
+                longData = '';
+            }
+
+            socket.send(data);
+            var display_data = data;
+            var display_button = false;
+            if (data.length > 1000) {
+                display_data = data.substring(0, 1000);
+                display_button = true;
+            }
+            const row = document.getElementById("tableLog").rows.length;
+            var button = "";
+            if (display_button) {
+                // button = "<br />" +
+                //     '<button  onclick="moreText(this,\'data_rec' + row + '\',\'' + htmlEscape(data) + '\');">more...</button>';
+
+            }
+            let pictureField = '<td class="commslog-data"></td>';
+
+            if (sendPictureBase64 != '') {
+                pictures[row] = sendPictureBase64;
+                pictures_need_scaled[row] = 'T';
+                pictureField = '<td class="commslog-data">' +
+                    '<canvas id="canvas' + row + '" ' + '></canvas>' + '</td>' +
+                    '</tr>';
+                sendPictureBase64 = '';
+            }
+
+            // Document.getElementById('test').innerHTML += '<tr>' +
+            //     '<td class="commslog-client">Client</td>' +
+            //     '<td class="commslog-server">Server</td>' +
+            //     '<td id="data_rec' + row + '" style="max-width:80%" class="commslog-data">' + htmlEscape(display_data) + button + '</td>' +
+            //     pictureField +
+            //     '</tr>';
+        };
+
+        readCitizencardButton.onclick = function() {
+            sendMessage.value = "READSMARTCARD";
+            sendButton.click();
+
+        };
+
+        readEmvCardButton.onclick = function() {
+            sendMessage.value = "READEMVCARD";
+            sendButton.click();
+
+        };
+
+        readPassportButton.onclick = function() {
+            sendMessage.value = "PASSPORT";
+            sendButton.click();
+
+        };
+
+        readMrzButton.onclick = function() {
+            sendMessage.value = "MRZOCR";
+            sendButton.click();
+
+        };
+        // readPassportOnlyButton.onclick = function() {
+        //     showOcrParams();
+        // }
+
+
+
+
+
+        function parseMRZ(lines) {
+            const result = {};
+
+            // บรรทัดที่ 1
+            const line1 = lines[0];
+            result.documentType = line1[0]; // ประเภทเอกสาร
+            result.countryCode = line1.substring(2, 5); // รหัสประเทศ
+            result.lastName = line1.substring(5, line1.indexOf("<<")).replace(/</g, ""); // นามสกุล
+            result.firstName = line1.substring(line1.indexOf("<<") + 2).replace(/</g, "");
+
+            // บรรทัดที่ 2
+            const line2 = lines[1];
+            result.passportNumber = line2.substring(0, 9); // หมายเลขพาสปอร์ต
+            result.nationality = line2.substring(10, 13); // สัญชาติ
+            result.birthDate = line2.substring(13, 19); // วันเกิด (YYMMDD)
+            result.gender = line2[20]; // เพศ
+            result.expiryDate = line2.substring(21, 27); // วันหมดอายุ (YYMMDD)
+            result.personalNumber = line2.substring(28, 42).replace(/</g, ""); // หมายเลขส่วนตัว (อาจใช้หรือไม่ใช้)
+            return result;
+        }
+
+        connectButton2.onclick = function() {
+            alert('connected');
+            stateLabel.innerHTML = "Connecting";
+            socket = new WebSocket(connectionUrl2.value);
+            socket.onopen = function(event) {
+                updateState();
+                // commsLog.innerHTML += '<tr>' +
+                //     '<td colspan="4" class="commslog-data">Connection opened</td>' +
+                //     '</tr>';
+                alert('เชื่อมต่อกับเซิพเวอร์สำเร็จ')
+            };
+            socket.onclose = function(event) {
+                updateState();
+                commsLog.innerHTML += '<tr>' +
+                    '<td colspan="4" class="commslog-data">Connection closed. Code: ' + htmlEscape(event.code) + '. Reason: ' + htmlEscape(event.reason) + '</td>' +
+                    '</tr>';
+            };
+            socket.onerror = updateState;
+            socket.onmessage = function(event) {
+                rows = document.getElementById("tableLog").rows.length;
+                var display_data = event.data;
+
+                var display_button = false;
+                if (event.data.length > 1000) {
+                    display_data = event.data.substring(0, 1000);
+                    display_button = true;
+                }
+                const row = rows;
+                var button = "";
+                if (display_button) {
+                    button = "<br />" +
+                        '<button  onclick="moreText(this,\'data_rec' + row + '\',\'' + htmlEscape(event.data) + '\');">more...</button>';
+
+                }
+                var log = '<tr>' +
+                    '<td class="commslog-server">Server</td>' +
+                    '<td class="commslog-client">Client</td>' +
+                    '<td id="data_rec' + row + '" style="max-width:80%" class="commslog-data">' + htmlEscape(display_data) + button + '</td>';
+
+
+                let json;
+
+                try {
+                    // alert(json)
+                    json = JSON.parse(event.data);
+                    if (json.hasOwnProperty('Name')) {
+                        document.getElementById('name2').textContent = json['Name'] + " " + json['Surname'];
+                        document.getElementById('PersonalNumber').textContent = json['PersonalNumber'];
+                        document.getElementById('Gender3').textContent = json['Gender'];
+                        document.getElementById('BirthDate4').textContent = json['BirthDate'];
+                        document.getElementById('ExpiryDate4').textContent = json['ExpiryDate'];
+                        document.getElementById('SerialNumber').textContent = json['SerialNumber'];
+                        document.getElementById('Nationality').textContent = json['Nationality'];
+                        document.getElementById('IssuerAuthority').textContent = json['IssuerAuthority'];
+                    }
+                    if (json.hasOwnProperty('fullMrz')) {
+                        document.getElementById('mrz').textContent = json['fullMrz'];
+                        document.getElementById('BirthDate4').textContent = json['birthDate'];
+                        document.getElementById('ExpiryDate4').textContent = json['expiryDate'];
+                        document.getElementById('SerialNumber').textContent = json['documentNo'];
+                        const lines = json['fullMrz'].split("\n");
+                        const parsedData = parseMRZ(lines);
+                        document.getElementById('name2').textContent = parsedData.firstName + " " + parsedData.lastName;
+                        document.getElementById('Gender3').textContent = parsedData.gender;
+                        document.getElementById('PersonalNumber').textContent = parsedData.personalNumber;
+                        document.getElementById('IssuerAuthority').textContent = parsedData.countryCode;
+                        document.getElementById('Nationality').textContent = parsedData.nationality;
+
+
+
+                    }
+
+
+
+
+
+                    // const parsedData = parseMRZFromSingleString(fullMrz);
+                    // alert("Parsed MRZ:", parsedData);
+                    // alert(result);
+                    if (json.hasOwnProperty('FaceImage1')) {
+                        let pic = 'data:image/jpeg;base64,' + json['FaceImage1'];
+                        document.getElementById('FaceImage1').src = pic;
+
+                    } else if (json.hasOwnProperty('FaceImage1')) {
+                        let pic = 'data:image/png;base64,' + json['FaceImage1'];
+                        document.getElementById('profile').src = pic;
+                    } else if (json.hasOwnProperty('mrzZone')) {
+                        pictures[rows] = 'data:image/png;base64,' + json['mrzZone'];
+                        pictures_need_scaled[rows] = 'T';
+                        log += '<td class="commslog-data">' +
+                            '<canvas id="canvas' + rows + '" ' + '></canvas>' + '</td>' +
+                            '</tr>';
+                    } else {
+                        log += '<td class="commslog-data"></td></tr>';
+                    }
+                } catch (e) {
+                    log += '<td class="commslog-data"></td></tr>';
+                }
+
+                commsLog.innerHTML += log;
+            };
+        };
+
+        function htmlEscape(str) {
+            return str.toString()
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/</g, '&lt;')
+                .replace(/\//g, '&#47;')
+                .replace(/>/g, '&gt;');
+        }
+
+        let observer = new MutationObserver(mutationRecords => {
+            for (let i = 0; i < pictures.length; i++) {
+                if (pictures[i] != "" && pictures[i] != null)
+                    drawCanvas(pictures[i], pictures_need_scaled[i], i);
+            }
+        });
+
+        observer.observe(commsLog, {
+            childList: true,
+            subtree: false,
+            attributes: false,
+            characterData: false
+        });
+
+        function clearLog() {
+            pictures = [];
+            pictures_need_scaled = [];
+
+            commsLog.innerHTML = "";
+        }
+
+        function Base64ToImage(base64img, callback) {
+            var img = new Image();
+            img.onload = function() {
+                callback(img);
+            };
+            img.src = base64img;
+        }
+
+        function drawCanvas(picture, transform, row) {
+
+            var canvas = document.getElementById("canvas" + row);
+            var ctx = canvas.getContext("2d");
+            var image = new Image();
+            image.onload = function() {
+                if (transform == 'T') {
+                    const ratio = image.height / image.width;
+                    const scaleWidth = image.width / 4;
+                    const scaleHight = image.height / 4;
+
+                    canvas.width = scaleWidth;
+                    canvas.height = scaleHight;
+
+                    ctx.drawImage(image, 0, 0, scaleWidth, scaleHight);
+                } else {
+                    canvas.width = image.width;
+                    canvas.height = image.height;
+                    ctx.drawImage(image, 0, 0);
+                }
+                picture = "";
+            };
+            image.src = picture;
+        }
+
+        function moreText(button, id, text) {
+            button.style.visibility = 'hidden';
+            let td = document.getElementById(id);
+            td.innerHTML = text;
+        }
+
+        function showOcrParams() {
+            let div = document.getElementById('passport_ocr_params');
+
+            let html = '<input type="text" id="docNo3" required="required" placeholder="Document No(XXY1234)"> ';
+            html += '<input type="text" id="ExpiryDate3" required="required"  placeholder="ExpiryDate (YYMMDD)" pattern="[0-9]{6}">';
+            html += '<input type="text" id="BirthDate3" required="required" placeholder="BirthDate (YYMMDD)" pattern ="[0-9]{6}">';
+            html += '<br />';
+            div.innerHTML += html;
+            sendButton.click();
+        }
+
+        function dragOverHandler(ev) {
+            console.log("File(s) in drop zone");
+
+            // Prevent default behavior (Prevent file from being opened)
+            ev.preventDefault();
+        }
+
+        function dropHandler(ev) {
+            console.log("File(s) dropped");
+            // Prevent default behavior (Prevent file from being opened)
+            ev.preventDefault();
+
+            let gfile;
+            if (ev.dataTransfer.items) {
+                // Use DataTransferItemList interface to access the file(s)
+
+                [...ev.dataTransfer.items].forEach((item, i) => {
+                    // If dropped items aren't files, reject them
+
+                    if (item.kind === "file") {
+                        gfile = item.getAsFile();
+
+                        console.log(`… file[${i}].name = ${gfile.name}`);
+                    }
+                });
+            } else {
+                // Use DataTransfer interface to access the file(s)
+                [...ev.dataTransfer.files].forEach((file, i) => {
+                    gfile = file;
+                    console.log(`… file[${i}].name = ${file.name}`);
+                });
+
+            }
+
+            let reader = new FileReader();
+
+            reader.onload = () => {
+                let pictureBase64 = reader.result;
+                sendPictureBase64 = pictureBase64;
+                pictureBase64 = pictureBase64.substring(pictureBase64.indexOf('base64,') + 7);
+                if (sendMessage.disabled == false) {
+                    {
+
+                        sendMessage.value = '';
+                        longData = "OCRPICTURE(" + pictureBase64 + ")";
+                        sendButton.click();
+                    }
+                }
+            };
+
+            reader.readAsDataURL(gfile);
+        }
+
+        function uploadFile() {
+            let fileBox = document.getElementById('img_upload');
+            fileBox.addEventListener('change', (event) => {
+
+                let reader = new FileReader();
+
+                reader.onload = () => {
+                    let pictureBase64 = reader.result;
+                    sendPictureBase64 = pictureBase64;
+                    pictureBase64 = pictureBase64.substring(pictureBase64.indexOf('base64,') + 7);
+                    if (sendMessage.disabled == false) {
+                        {
+
+                            sendMessage.value = '';
+                            longData = "OCRPICTURE(" + pictureBase64 + ")";
+                            sendButton.click();
+                        }
+                    }
+
+                    fileBox.value = '';
+                    var new_element = fileBox.cloneNode(true);
+                    fileBox.parentNode.replaceChild(new_element, fileBox);
+                };
+
+                reader.readAsDataURL(event.target.files[0]);
+
+            });
+
+            fileBox.click();
+        }
+
+        function onReadPassportOnly() {
+            let exp = document.getElementById('ExpiryDate3').value;
+            let docNo = document.getElementById('docNo3').value;
+            let birthDate = document.getElementById('BirthDate3').value;
+
+            sendMessage.value = "PASSPORT(" + docNo + "," + exp + "," + birthDate + ")";
+            sendButton.click();
+
+            document.getElementById('passport_ocr_params').innerHTML = '';
+        }
+    </script>
+
+
+
+
+    <img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQBAMAAAB8P++eAAAAMFBMVEX////7+/vr6+vNzc2qqqplywBWrQD/Y5T/JTf+AADmAABeeEQvNydqAAAGBAMAAAGoF14oAAAEBUlEQVR42u2WTUwUVxzA/2925LIojsyqCLtMqSQeFJeFROPHstjdNkZdkaiX9mRTovYgSYNFE43Rg5IeNG5SqyaVcGzXkvTm7hZWq9bKriAYYzSLBI3WAplp0jY2kV3fzPuYGcBxD/bmO0zevPeb//f7v0FQ5EDvwf8LFG89ixYDol9Wo+smKal2sHF6kM6q7qbE5tY03d7SHR6ygiuvwY1txkzIlPaD3NQ4Zryk/PCP1wKibBlI97dq+idXUxqgcEkVnruS/smRpuWaCbrHU5pc/wyTQsata0U77wVBTlRP9UNkT9oE61K9AHL9VERbeTVurMjNm54mqrFw8CwKmWBfpf6V2Dx/TdxN3YjMf2JwIEZ8JnjnEbEjvLAQZ1EKlxkciJ9UcdD1Z5ztDmgsgPIrMkWtMgfd41xOYXZOIjUcLB3tdchypHWIgb5k2gH0nE0zMHjRCRTLWxgY/VQrDuybcAQ/DDEwmwEn8COlSDBcTUE0GXcEjRzqoDDhDH7sfccg2szAt9hogjBFQFRmDyd9N1VTEFegXXKEVKQFJHEUd0DSKhLthIm0HSQpnNdCNizgq147GP0m7QTygNMye6NqM9ekwlG4kLI5I4cMZ+bVhMA8MwX1rw9oIjakAYX6jXlBRRJ4BF6PwmRSfQyLFhJwWy/IG8khKuirljODG0DfGAd3qCBNEol5vCqFAxqYLeUyB0H2A2Q0DspRD3BQfJEc5KBl6KprG6pNEPqqfkKzOQBsha2bQeVw6g3nSySaGYgb99ylhsLDLVYQ3E+oozOGHKzVbCBs+HkuUm6ivd4E0ZYeNTPTTrn51+0wA9TJgpZVLeaV1y+4yS8c64W0/AcFTBCHK/fFEMwFAmo4KRldE0ZxsF8cGbTuzYqHtOz8t6e8TMk5CcjNSC+kdcfgPyag9AoDhUQARmvAcIiAW3v0JzWJg64BJXdBQ21+/b4zwMqRW5dA2h3I7+onYJd+Y4i3FbyMxz4hxE7hS2MBdSq6Fgq6Bny/dxv6Sk76COj6Yz91ZG8dToQ7oYNCqu4QjX9FK5UoPt/PXO701mruhwcxGP2ecahzzxBtUtlzLHclsXtBA6wc+a2brlUc8TCvg5cPM7LiaOPT8Y4ub3bpAbqy+MQ18xRmvIe5nr83YXDt8Nca0/GveWniSHByybEVwx1dD1ccYB/6yF8DTaGcYLFA391o6DjjohaWfKXQ/xCWazmhPDhNbYf2WH4fse9zhRUkLwrXlUD+9iVD5HR77KWheclxkqsZ1bM+pqcWZ2xVe0zXjPb6pyO8IK1l5trcA7mLKuo48+VpQG0BuPmZeTbs9Vi+9oQyqv6Ieyou4FybU+HqRS4o+TH1VG7MvgFFjvfguwFfA4FobmCxcnTPAAAAAElFTkSuQmCC'
+    />
+</body>
+
+
+</html>
+
+
+</html>
