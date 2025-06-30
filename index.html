@@ -612,7 +612,7 @@
             formData.append('image', file);
 
             try {
-                const response = await fetch('/upload', {
+                const response = await fetch('http://203.151.70.158:8551/upload', {
                     method: 'POST',
                     body: formData
                 });
